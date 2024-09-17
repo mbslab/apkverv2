@@ -1,12 +1,22 @@
+import os
 from fastapi import FastAPI, HTTPException, Depends, Query
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-from pydantic import BaseModel
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
+from dotenv import load_dotenv
+
+# Загрузка переменных окружения
+load_dotenv()
 
 # Настройка подключения к базе данных
-SQLALCHEMY_DATABASE_URL = "postgresql://dbapkvers:AVNS_FGItGmY_X-k6IMY21_n@app-c2631fda-54d2-47d7-a6ba-be9f90500b67-do-user-8735824-0.b.db.ondigitalocean.com:25060/dbapkvers?sslmode=require"
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -28,12 +38,11 @@ Base.metadata.create_all(bind=engine)
 # Pydantic модель
 class ApkBase(BaseModel):
     name: Optional[str] = ''
-    vers: Optional[float]
+    vers: Optional[float] = None
     isdismiss: Optional[bool] = True
     description: Optional[str] = ''
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApkCreate(ApkBase):
     pass
@@ -72,4 +81,4 @@ def get_first_apk_by_name(name: str, db: Session = Depends(get_db)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
