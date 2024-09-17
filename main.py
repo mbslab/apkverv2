@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from pydantic import BaseModel, ConfigDict
@@ -52,6 +53,14 @@ class Apk(ApkBase):
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Разрешает все источники
+    allow_credentials=True,
+    allow_methods=["*"],  # Разрешает все методы
+    allow_headers=["*"],  # Разрешает все заголовки
+)
+
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -66,11 +75,15 @@ def read_apk(apk_id: int, db: Session = Depends(get_db)):
     if db_apk is None:
         raise HTTPException(status_code=404, detail="APK not found")
     return db_apk
+class ApkResponse(BaseModel):
+    apks: List[Apk]
+    total: int
 
-@app.get("/apks/", response_model=List[Apk])
+@app.get("/apks/", response_model=ApkResponse)
 def read_apks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     apks = db.query(ApkModel).offset(skip).limit(limit).all()
-    return apks
+    total = db.query(ApkModel).count()
+    return ApkResponse(apks=apks, total=total)
 
 @app.get("/apk/name/{name}", response_model=Apk)
 def get_first_apk_by_name(name: str, db: Session = Depends(get_db)):

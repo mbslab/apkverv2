@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>APK Manager</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+      }
+      .section {
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      input,
+      button {
+        margin: 5px 0;
+        padding: 5px;
+      }
+      #apkList {
+        list-style-type: none;
+        padding: 0;
+      }
+      #apkList li {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #eee;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>APK Manager</h1>
+
+    <div class="section">
+      <h2>Create APK</h2>
+      <input type="text" id="createName" placeholder="Name" />
+      <input type="number" id="createVers" placeholder="Version" />
+      <input type="checkbox" id="createIsDismiss" /> Is Dismiss
+      <input type="text" id="createDescription" placeholder="Description" />
+      <button onclick="createApk()">Create APK</button>
+    </div>
+
+    <div class="section">
+      <h2>Get APK by ID</h2>
+      <input type="number" id="getApkId" placeholder="APK ID" />
+      <button onclick="getApkById()">Get APK</button>
+      <div id="apkDetails"></div>
+    </div>
+
+    <div class="section">
+      <h2>Get APK by Name</h2>
+      <input type="text" id="getApkName" placeholder="APK Name" />
+      <button onclick="getApkByName()">Get APK</button>
+      <div id="apkDetailsByName"></div>
+    </div>
+
+    <div class="section">
+      <h2>Update APK</h2>
+      <input type="number" id="updateApkId" placeholder="APK ID" />
+      <input type="text" id="updateName" placeholder="New Name" />
+      <input type="number" id="updateVers" placeholder="New Version" />
+      <input type="checkbox" id="updateIsDismiss" /> Is Dismiss
+      <input type="text" id="updateDescription" placeholder="New Description" />
+      <button onclick="updateApk()">Update APK</button>
+    </div>
+
+    <div class="section">
+      <h2>Delete APK</h2>
+      <input type="number" id="deleteApkId" placeholder="APK ID" />
+      <button onclick="deleteApk()">Delete APK</button>
+    </div>
+
+    <div class="section">
+      <h2>APK List</h2>
+      <button onclick="getApkList()">Refresh List</button>
+      <ul id="apkList"></ul>
+    </div>
+
+    <script>
+      const API_URL = "https://seal-app-ftnw2.ondigitalocean.app";
+
+      async function createApk() {
+        const name = document.getElementById("createName").value;
+        const vers = parseFloat(document.getElementById("createVers").value);
+        const isdismiss = document.getElementById("createIsDismiss").checked;
+        const description = document.getElementById("createDescription").value;
+
+        const response = await fetch(`${API_URL}/apk/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, vers, isdismiss, description }),
+        });
+
+        const result = await response.json();
+        alert(
+          response.ok ? "APK created successfully" : `Error: ${result.detail}`
+        );
+        if (response.ok) getApkList();
+      }
+
+      async function getApkById() {
+        const id = document.getElementById("getApkId").value;
+        const response = await fetch(`${API_URL}/apk/id/${id}`);
+        const result = await response.json();
+        const detailsDiv = document.getElementById("apkDetails");
+        detailsDiv.innerHTML = response.ok
+          ? `ID: ${result.id}, Name: ${result.name}, Version: ${result.vers}, Is Dismiss: ${result.isdismiss}, Description: ${result.description}`
+          : `Error: ${result.detail}`;
+      }
+
+      async function getApkByName() {
+        const name = document.getElementById("getApkName").value;
+        const response = await fetch(`${API_URL}/apk/name/${name}`);
+        const result = await response.json();
+        const detailsDiv = document.getElementById("apkDetailsByName");
+        detailsDiv.innerHTML = response.ok
+          ? `ID: ${result.id}, Name: ${result.name}, Version: ${result.vers}, Is Dismiss: ${result.isdismiss}, Description: ${result.description}`
+          : `Error: ${result.detail}`;
+      }
+
+      async function updateApk() {
+        const id = document.getElementById("updateApkId").value;
+        const name = document.getElementById("updateName").value;
+        const vers = parseFloat(document.getElementById("updateVers").value);
+        const isdismiss = document.getElementById("updateIsDismiss").checked;
+        const description = document.getElementById("updateDescription").value;
+
+        const response = await fetch(`${API_URL}/apk/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, vers, isdismiss, description }),
+        });
+
+        const result = await response.json();
+        alert(
+          response.ok ? "APK updated successfully" : `Error: ${result.detail}`
+        );
+        if (response.ok) getApkList();
+      }
+
+      async function deleteApk() {
+        const id = document.getElementById("deleteApkId").value;
+        const response = await fetch(`${API_URL}/apk/${id}`, {
+          method: "DELETE",
+        });
+
+        const result = await response.json();
+        alert(
+          response.ok ? "APK deleted successfully" : `Error: ${result.detail}`
+        );
+        if (response.ok) getApkList();
+      }
+
+      async function getApkList() {
+    try {
+        const response = await fetch(`${API_URL}/apks/`);
+        const result = await response.json();
+        const listElement = document.getElementById('apkList');
+        listElement.innerHTML = '';
+        
+        if (result.apks && Array.isArray(result.apks)) {
+            result.apks.forEach(apk => {
+                const li = document.createElement('li');
+                li.textContent = `ID: ${apk.id}, Name: ${apk.name}, Version: ${apk.vers}, Is Dismiss: ${apk.isdismiss}, Description: ${apk.description}`;
+                listElement.appendChild(li);
+            });
+            
+            if (result.total !== undefined) {
+                const totalElement = document.createElement('p');
+                totalElement.textContent = `Total APKs: ${result.total}`;
+                listElement.prepend(totalElement);
+            }
+        } else {
+            listElement.innerHTML = '<li>No APKs found or invalid data returned</li>';
+        }
+    } catch (error) {
+        console.error('Error fetching APK list:', error);
+        const listElement = document.getElementById('apkList');
+        listElement.innerHTML = '<li>Error fetching APK list. Please try again later.</li>';
+    }
+}
+      // Initial load of APK list
+      getApkList();
+    </script>
+  </body>
+</html>
