@@ -51,7 +51,7 @@ class ApkCreate(ApkBase):
 class Apk(ApkBase):
     id: int
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 
 app.add_middleware(
     CORSMiddleware,
