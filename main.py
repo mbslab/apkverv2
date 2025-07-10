@@ -92,6 +92,16 @@ def get_first_apk_by_name(name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="APK not found with the given name")
     return apk
 
+@app.get("/api/v2/apk/")
+def get_apks_simple_format(db: Session = Depends(get_db)):
+    """Возвращает APK в формате {name: version}"""
+    apks = db.query(ApkModel).all()
+    result = {}
+    for apk in apks:
+        if apk.name:  # Проверяем что имя не пустое
+            result[apk.name] = apk.vers
+    return result
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
