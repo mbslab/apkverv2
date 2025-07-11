@@ -19,6 +19,11 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 API_KEY = os.getenv("API_KEY")
 
+def verify_api_key(x_api_key: Optional[str] = Header(None)):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+
+
 SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -112,6 +117,36 @@ def read_index(key: Optional[str] = None):
             detail="Access denied. Please provide valid API key."
         )
     return FileResponse('index.html')
+@app.post("/apk/", response_model=Apk, dependencies=[Depends(verify_api_key)])
+def create_apk_item(apk: ApkCreate, db: Session = Depends(get_db)):
+    db_apk = ApkModel(**apk.dict())
+    db.add(db_apk)
+    db.commit()
+    db.refresh(db_apk)
+    return db_apk
+
+@app.put("/apk/{apk_id}", response_model=Apk, dependencies=[Depends(verify_api_key)])
+def update_apk_item(apk_id: int, apk: ApkCreate, db: Session = Depends(get_db)):
+    db_apk = db.query(ApkModel).filter(ApkModel.id == apk_id).first()
+    if db_apk is None:
+        raise HTTPException(status_code=404, detail="APK not found")
+    
+    for field, value in apk.dict(exclude_unset=True).items():
+        setattr(db_apk, field, value)
+    
+    db.commit()
+    db.refresh(db_apk)
+    return db_apk
+
+@app.delete("/apk/{apk_id}")
+def delete_apk_item(apk_id: int, db: Session = Depends(get_db), _: str = Depends(verify_api_key)):
+    db_apk = db.query(ApkModel).filter(ApkModel.id == apk_id).first()
+    if db_apk is None:
+        raise HTTPException(status_code=404, detail="APK not found")
+    
+    db.delete(db_apk)
+    db.commit()
+    return {"message": "APK deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
