@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
@@ -21,6 +21,9 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+API_KEY = "vrbaeE3843824gmTHNAetn54qqj5@juq3" 
 
 Base = declarative_base()
 
@@ -104,7 +107,12 @@ def get_apks_simple_format(db: Session = Depends(get_db)):
     return result
 
 @app.get("/")
-def read_index():
+def read_index(key: Optional[str] = None):
+    if key != API_KEY:
+        raise HTTPException(
+            status_code=401, 
+            detail="Access denied. Please provide valid API key."
+        )
     return FileResponse('index.html')
 
 if __name__ == "__main__":
