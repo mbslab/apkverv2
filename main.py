@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from dotenv import load_dotenv
+from fastapi.responses import FileResponse
 
 # Загрузка переменных окружения
 load_dotenv()
