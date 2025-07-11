@@ -102,15 +102,9 @@ def get_apks_simple_format(db: Session = Depends(get_db)):
             result[apk.name] = apk.vers
     return result
 
-@app.get("/debug/db-info")
-def debug_db_info(db: Session = Depends(get_db)):
-    total = db.query(ApkModel).count()
-    all_names = [apk.name for apk in db.query(ApkModel).limit(10).all()]
-    return {
-        "total_apks": total,
-        "first_10_names": all_names,
-        "database_connection": "OK"
-    }
+@app.get("/")
+def read_index():
+    return FileResponse('index.html')
 
 if __name__ == "__main__":
     import uvicorn
