@@ -58,6 +58,29 @@ class ApkCreate(ApkBase):
 class Apk(ApkBase):
     id: int
 
+# Добавьте модель SQLAlchemy (если её нет)
+class BandleCorrModel(Base):
+    __tablename__ = "bandleCorr"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bandle = Column(String, index=True)
+    project = Column(String, index=True)
+    platform = Column(String, index=True)
+
+# Добавьте Pydantic модели (если их нет)
+class BandleCorrBase(BaseModel):
+    bandle: Optional[str] = ''
+    project: Optional[str] = ''
+    platform: Optional[str] = ''
+
+    model_config = ConfigDict(from_attributes=True)
+
+class BandleCorrCreate(BandleCorrBase):
+    pass
+
+class BandleCorr(BandleCorrBase):
+    id: int
+
 app = FastAPI(docs_url=None, redoc_url=None)
 
 app.add_middleware(
@@ -147,6 +170,15 @@ def delete_apk_item(apk_id: int, db: Session = Depends(get_db), _: str = Depends
     db.delete(db_apk)
     db.commit()
     return {"message": "APK deleted successfully"}
+    
+# ТОЛЬКО защищённое создание
+@app.post("/bandlecorr/", response_model=BandleCorr, dependencies=[Depends(verify_api_key)])
+def create_bandle_corr_item(bandle: BandleCorrCreate, db: Session = Depends(get_db)):
+    db_bandle = BandleCorrModel(**bandle.dict())
+    db.add(db_bandle)
+    db.commit()
+    db.refresh(db_bandle)
+    return db_bandle
 
 if __name__ == "__main__":
     import uvicorn
