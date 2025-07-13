@@ -170,11 +170,16 @@ def delete_apk_item(apk_id: int, db: Session = Depends(get_db), _: str = Depends
     db.commit()
     return {"message": "APK deleted successfully"}
 
-# BandleCorr endpoint
 @app.post("/bandlecorr/", response_model=BandleCorr, dependencies=[Depends(verify_api_key)])
 def create_bandle_corr_item(bandle: BandleCorrCreate, db: Session = Depends(get_db)):
     try:
-        db_bandle = BandleCorrModel(**bandle.dict())
+        # НЕ используйте bandle.dict() - создавайте объект вручную
+        db_bandle = BandleCorrModel(
+            bandle=bandle.bandle,
+            project=bandle.project,
+            platform=bandle.platform
+            # id НЕ передаем - он создастся автоматически
+        )
         db.add(db_bandle)
         db.commit()
         db.refresh(db_bandle)
