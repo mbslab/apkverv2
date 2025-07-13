@@ -83,7 +83,16 @@
         <button onclick="getApkList()">Refresh List</button>
         <ul id="apkList"></ul>
     </div>
+    
+    <div class="section">
+        <h2>Create BandleCorr</h2>
+        <input type="text" id="createBandle" placeholder="Bandle" />
+        <input type="text" id="createProject" placeholder="Project" />
+        <input type="text" id="createPlatform" placeholder="Platform" />
+        <button onclick="createBandleCorr()">Create BandleCorr</button>
+    </div>
 
+<script>
     <script>
         const API_URL = "https://seal-app-ftnw2.ondigitalocean.app";
         
@@ -197,6 +206,33 @@
 
         // Initial load of APK list
         getApkList();
+
+
+        async function createBandleCorr() {
+        const bandle = document.getElementById("createBandle").value;
+        const project = document.getElementById("createProject").value;
+        const platform = document.getElementById("createPlatform").value;
+    
+        const response = await fetch(`${API_URL}/bandlecorr/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-API-Key": API_KEY
+            },
+            body: JSON.stringify({ bandle, project, platform }),
+        });
+    
+        const result = await response.json();
+        alert(response.ok ? "BandleCorr created successfully" : `Error: ${result.detail}`);
+        
+        if (response.ok) {
+            // Очистить форму после успешного создания
+            document.getElementById("createBandle").value = '';
+            document.getElementById("createProject").value = '';
+            document.getElementById("createPlatform").value = '';
+        }
+    }
+    
     </script>
 </body>
 </html>
