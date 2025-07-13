@@ -23,14 +23,13 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
-
 SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-# Модель SQLAlchemy
+# ВСЕ модели SQLAlchemy ВМЕСТЕ
 class ApkModel(Base):
     __tablename__ = "allapk"
 
@@ -40,10 +39,18 @@ class ApkModel(Base):
     isdismiss = Column(Boolean, default=True)
     description = Column(String, default='')
 
-# Создание таблиц
+class BandleCorrModel(Base):
+    __tablename__ = "bandleCorr"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bandle = Column(String, index=True)
+    project = Column(String, index=True)
+    platform = Column(String, index=True)
+
+# Создание ВСЕХ таблиц ПОСЛЕ определения ВСЕХ моделей
 Base.metadata.create_all(bind=engine)
 
-# Pydantic модель
+# Pydantic модели
 class ApkBase(BaseModel):
     name: Optional[str] = ''
     vers: Optional[float] = None
@@ -58,16 +65,6 @@ class ApkCreate(ApkBase):
 class Apk(ApkBase):
     id: int
 
-# Добавьте модель SQLAlchemy (если её нет)
-class BandleCorrModel(Base):
-    __tablename__ = "bandleCorr"
-
-    id = Column(Integer, primary_key=True, index=True)
-    bandle = Column(String, index=True)
-    project = Column(String, index=True)
-    platform = Column(String, index=True)
-
-# Добавьте Pydantic модели (если их нет)
 class BandleCorrBase(BaseModel):
     bandle: Optional[str] = ''
     project: Optional[str] = ''
@@ -81,14 +78,18 @@ class BandleCorrCreate(BandleCorrBase):
 class BandleCorr(BandleCorrBase):
     id: int
 
+class ApkResponse(BaseModel):
+    apks: List[Apk]
+    total: int
+
 app = FastAPI(docs_url=None, redoc_url=None)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Разрешает все источники
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Разрешает все методы
-    allow_headers=["*"],  # Разрешает все заголовки
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Dependency
@@ -105,9 +106,6 @@ def read_apk(apk_id: int, db: Session = Depends(get_db)):
     if db_apk is None:
         raise HTTPException(status_code=404, detail="APK not found")
     return db_apk
-class ApkResponse(BaseModel):
-    apks: List[Apk]
-    total: int
 
 @app.get("/apks/", response_model=ApkResponse)
 def read_apks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -128,7 +126,7 @@ def get_apks_simple_format(db: Session = Depends(get_db)):
     apks = db.query(ApkModel).all()
     result = {}
     for apk in apks:
-        if apk.name:  # Проверяем что имя не пустое
+        if apk.name:
             result[apk.name] = apk.vers
     return result
 
@@ -140,6 +138,7 @@ def read_index(key: Optional[str] = None):
             detail="Access denied. Please provide valid API key."
         )
     return FileResponse('index.html')
+
 @app.post("/apk/", response_model=Apk, dependencies=[Depends(verify_api_key)])
 def create_apk_item(apk: ApkCreate, db: Session = Depends(get_db)):
     db_apk = ApkModel(**apk.dict())
@@ -170,15 +169,19 @@ def delete_apk_item(apk_id: int, db: Session = Depends(get_db), _: str = Depends
     db.delete(db_apk)
     db.commit()
     return {"message": "APK deleted successfully"}
-    
-# ТОЛЬКО защищённое создание
+
+# BandleCorr endpoint
 @app.post("/bandlecorr/", response_model=BandleCorr, dependencies=[Depends(verify_api_key)])
 def create_bandle_corr_item(bandle: BandleCorrCreate, db: Session = Depends(get_db)):
-    db_bandle = BandleCorrModel(**bandle.dict())
-    db.add(db_bandle)
-    db.commit()
-    db.refresh(db_bandle)
-    return db_bandle
+    try:
+        db_bandle = BandleCorrModel(**bandle.dict())
+        db.add(db_bandle)
+        db.commit()
+        db.refresh(db_bandle)
+        return db_bandle
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
