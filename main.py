@@ -119,6 +119,14 @@ def get_first_apk_by_name(name: str, db: Session = Depends(get_db)):
     if not apk:
         raise HTTPException(status_code=404, detail="APK not found with the given name")
     return apk
+    
+@app.get("/apk/{name}")
+def get_apk_version_by_name(name: str, db: Session = Depends(get_db)):
+    """Возвращает только версию APK по имени"""
+    apk = db.query(ApkModel).filter(ApkModel.name == name).first()
+    if not apk:
+        raise HTTPException(status_code=404, detail="APK not found with the given name")
+    return apk.vers
 
 @app.get("/api/v2/apk/")
 def get_apks_simple_format(db: Session = Depends(get_db)):
